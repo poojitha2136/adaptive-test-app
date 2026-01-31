@@ -4,16 +4,13 @@ import uuid
 import os
 
 app = Flask(__name__)
-
-# Enable CORS for production
 CORS(app)
 
-# In-memory storage (Resets when Render server sleeps/restarts)
+# Storage (Resets on server restart)
 tests_db = {}
 submissions_db = []
 
 def get_fallback_questions(skills, count):
-    """Returns questions from an expanded pool to allow for variable test lengths."""
     pool = [
         {"id": "q1", "skill": skills, "question": f"Which is a primary best practice when working with {skills}?", "options": ["Efficient Resource Management", "Ignoring Documentation", "Hardcoding Values", "Manual Testing Only"], "correct_answer": "Efficient Resource Management"},
         {"id": "q2", "skill": skills, "question": f"In a professional environment, how is {skills} typically version controlled?", "options": ["Using Git", "Emailing zip files", "Saving on Desktop", "No version control"], "correct_answer": "Using Git"},
@@ -21,12 +18,11 @@ def get_fallback_questions(skills, count):
         {"id": "q4", "skill": skills, "question": f"What is a main advantage of using {skills} in modern development?", "options": ["Scalability", "Slower performance", "Harder to maintain", "Limited support"], "correct_answer": "Scalability"},
         {"id": "q5", "skill": skills, "question": f"What is a common error to avoid when implementing {skills}?", "options": ["Memory leaks", "Proper indentation", "Commenting code", "Meaningful variables"], "correct_answer": "Memory leaks"},
         {"id": "q6", "skill": skills, "question": f"How should sensitive configuration data in {skills} be managed?", "options": ["Environment variables", "Hardcoded in source", "Public comments", "Plain text files"], "correct_answer": "Environment variables"},
-        {"id": "q7", "skill": skills, "question": f"Which principle helps in maintaining clean code in {skills}?", "options": ["DRY (Don't Repeat Yourself)", "WET (Write Everything Twice)", "Copy-Paste everything", "Hardcoding logic"], "correct_answer": "DRY (Don't Repeat Yourself)"},
-        {"id": "q8", "skill": skills, "question": f"What is the first step in debugging a {skills} application?", "options": ["Checking error logs", "Reinstalling OS", "Deleting the project", "Ignoring the error"], "correct_answer": "Checking error logs"},
-        {"id": "q9", "skill": skills, "question": f"In {skills}, what does 'Refactoring' mean?", "options": ["Improving code structure", "Adding new features", "Deleting all code", "Changing the UI only"], "correct_answer": "Improving code structure"},
+        {"id": "q7", "skill": skills, "question": f"Which principle helps in maintaining clean code in {skills}?", "options": ["DRY (Don't Repeat Yourself)", "WET", "Copy-Paste", "Hardcoding"], "correct_answer": "DRY (Don't Repeat Yourself)"},
+        {"id": "q8", "skill": skills, "question": f"What is the first step in debugging a {skills} application?", "options": ["Checking error logs", "Reinstalling OS", "Deleting project", "Ignoring error"], "correct_answer": "Checking error logs"},
+        {"id": "q9", "skill": skills, "question": f"In {skills}, what does 'Refactoring' mean?", "options": ["Improving code structure", "Adding new features", "Deleting all code", "Changing UI only"], "correct_answer": "Improving code structure"},
         {"id": "q10", "skill": skills, "question": f"Which of these is essential for {skills} team collaboration?", "options": ["Code Reviews", "Working in silos", "Never sharing code", "Manual deployment"], "correct_answer": "Code Reviews"}
     ]
-    # Slices the list based on the user's input
     return pool[:min(len(pool), int(count))]
 
 @app.route('/api/create-test', methods=['POST'])
@@ -35,50 +31,32 @@ def create_test():
     test_id = str(uuid.uuid4())[:8]
     skills = data.get('skills', 'General Programming')
     num_q = data.get('numQuestions', 5)
-    
     questions = get_fallback_questions(skills, num_q)
-    
     tests_db[test_id] = {
-        "id": test_id,
-        "skills": skills,
-        "difficulty": data.get('difficulty', 'Medium'),
-        "questions": questions,
-        "timeLimit": int(data.get('timeLimit', 10))
+        "id": test_id, "skills": skills, "difficulty": data.get('difficulty', 'Medium'),
+        "questions": questions, "timeLimit": int(data.get('timeLimit', 10))
     }
     return jsonify({"testId": test_id})
 
 @app.route('/api/test/<test_id>', methods=['GET'])
 def get_test(test_id):
     test = tests_db.get(test_id)
-    if not test:
-        return jsonify({"error": "Test not found"}), 404
+    if not test: return jsonify({"error": "Not found"}), 404
     return jsonify(test)
 
 @app.route('/api/submit-test', methods=['POST'])
 def submit_test():
     data = request.json
     test = tests_db.get(data.get('testId'))
-    if not test: 
-        return jsonify({"error": "Test session expired or invalid"}), 404
-        
-    score = 0
-    user_answers = data.get('answers', {})
-    for q in test['questions']:
-        if user_answers.get(q['id']) == q['correct_answer']:
-            score += 1
-            
+    if not test: return jsonify({"error": "Invalid session"}), 404
+    score = sum(1 for q in test['questions'] if data.get('answers', {}).get(q['id']) == q['correct_answer'])
     total = len(test['questions'])
-    percentage = (score / total) * 100 if total > 0 else 0
-    
-    result = {
-        "candidateName": data.get('candidateName', 'Guest'),
-        "score": score,
-        "total": total,
-        "percentage": percentage,
-        "status": "Pass" if percentage >= 60 else "Fail"
+    res = {
+        "candidateName": data.get('candidateName', 'Guest'), "score": score, "total": total,
+        "percentage": int((score/total)*100), "status": "Pass" if (score/total) >= 0.6 else "Fail"
     }
-    submissions_db.append(result)
-    return jsonify({"result": result})
+    submissions_db.append(res)
+    return jsonify({"result": res})
 
 @app.route('/api/admin/submissions', methods=['GET'])
 def get_submissions():
