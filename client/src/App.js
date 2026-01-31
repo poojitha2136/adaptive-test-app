@@ -26,7 +26,7 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [testResult, setTestResult] = useState(null);
 
-  // Updated Backend API Base URL for Render
+  // CRITICAL: Updated Backend URL
   const API_URL = 'https://adaptive-test-backend.onrender.com/api';
 
   // --- API Interaction Handlers ---
@@ -40,6 +40,7 @@ const App = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(adminConfig)
       });
+      if (!res.ok) throw new Error("Server error. Try again in a moment.");
       const data = await res.json();
       if (data.testId) {
         setGeneratedTestId(data.testId);
@@ -47,7 +48,7 @@ const App = () => {
         throw new Error("Failed to generate test ID");
       }
     } catch (err) {
-      setError("Backend unreachable. Please ensure your Render service is live.");
+      setError("Backend unreachable. If this is the first run, the server may take 30s to wake up.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/test/${generatedTestId}`);
+      const res = await fetch(`${API_URL}/test/${generatedTestId.toLowerCase()}`);
       if (!res.ok) throw new Error("Test not found. Please check the ID.");
       const data = await res.json();
       
@@ -105,7 +106,7 @@ const App = () => {
       const data = await res.json();
       setSubmissions(data);
     } catch (err) {
-      setError("Could not connect to the server.");
+      console.error("Dashboard Sync Error:", err);
     }
   };
 
@@ -126,8 +127,6 @@ const App = () => {
     }
   }, [view]);
 
-  // --- Formatters ---
-
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -138,7 +137,6 @@ const App = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* Navigation Header */}
         <header className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('landing')}>
             <div className="bg-indigo-600 p-2 rounded-lg text-white">
@@ -174,15 +172,13 @@ const App = () => {
           </div>
         )}
 
-        {/* View: Landing */}
         {view === 'landing' && (
           <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
             <h2 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
               Adaptive <span className="text-indigo-600">Intern Screening</span>
             </h2>
             <p className="text-lg text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-              The easiest way to generate skill-specific tests for your applicants. 
-              Our AI engine handles the complexity so you can find the best talent faster.
+              Generate skill-specific tests for your applicants instantly. 
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <button 
@@ -201,7 +197,6 @@ const App = () => {
           </div>
         )}
 
-        {/* View: Admin Dashboard */}
         {view === 'admin' && (
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-fit">
@@ -213,7 +208,7 @@ const App = () => {
                   <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">Required Skills</label>
                   <input 
                     className="w-full border rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-indigo-100 border-slate-200"
-                    placeholder="Python, React, ML..."
+                    placeholder="Python, React..."
                     value={adminConfig.skills}
                     onChange={e => setAdminConfig({...adminConfig, skills: e.target.value})}
                   />
@@ -255,7 +250,7 @@ const App = () => {
                   disabled={loading}
                   className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition mt-4 shadow-md"
                 >
-                  {loading ? 'Generating...' : 'Generate Test Code'}
+                  {loading ? 'Connecting...' : 'Generate Test Code'}
                 </button>
                 
                 {generatedTestId && (
@@ -278,7 +273,7 @@ const App = () => {
                   </button>
                 </div>
                 {submissions.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400 italic">No submissions yet. Results will appear here once candidates finish.</div>
+                  <div className="text-center py-12 text-slate-400 italic">No submissions yet.</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -286,7 +281,6 @@ const App = () => {
                         <tr className="border-b">
                           <th className="pb-3 px-2">Candidate</th>
                           <th className="pb-3 px-2">Score</th>
-                          <th className="pb-3 px-2">Percentage</th>
                           <th className="pb-3 px-2">Status</th>
                         </tr>
                       </thead>
@@ -295,7 +289,6 @@ const App = () => {
                           <tr key={i} className="text-sm hover:bg-slate-50 transition">
                             <td className="py-4 px-2 font-semibold">{sub.candidateName}</td>
                             <td className="py-4 px-2">{sub.score} / {sub.total}</td>
-                            <td className="py-4 px-2 font-mono font-bold text-indigo-600">{sub.percentage.toFixed(0)}%</td>
                             <td className="py-4 px-2">
                               <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
                                 sub.status === 'Pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -314,7 +307,6 @@ const App = () => {
           </div>
         )}
 
-        {/* View: Candidate Entry */}
         {view === 'candidate-entry' && (
           <div className="max-w-md mx-auto py-12">
             <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-xl text-center">
@@ -322,7 +314,7 @@ const App = () => {
                 <User size={36} />
               </div>
               <h3 className="text-2xl font-bold mb-2">Start Assessment</h3>
-              <p className="text-slate-500 text-sm mb-8">Enter your full name and the code shared with you.</p>
+              <p className="text-slate-500 text-sm mb-8">Enter your name and the test code.</p>
               <div className="space-y-4">
                 <input 
                   className="w-full border rounded-2xl p-4 outline-none focus:ring-2 focus:ring-indigo-100 border-slate-200"
@@ -348,7 +340,6 @@ const App = () => {
           </div>
         )}
 
-        {/* View: Active Test */}
         {view === 'test' && currentTest && (
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="flex justify-between items-center bg-indigo-600 text-white p-6 rounded-2xl shadow-lg sticky top-4 z-10">
@@ -421,36 +412,26 @@ const App = () => {
           </div>
         )}
 
-        {/* View: Results */}
         {view === 'results' && testResult && (
-          <div className="max-w-lg mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="max-w-lg mx-auto py-12">
             <div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-2xl text-center">
               <div className="bg-green-100 text-green-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
                 <CheckCircle2 size={48} />
               </div>
               <h2 className="text-4xl font-black mb-2 text-slate-800 tracking-tight">Well Done!</h2>
-              <p className="text-slate-400 font-medium mb-10">We've shared your results with the recruiter.</p>
-              
               <div className="grid grid-cols-2 gap-4 mb-10">
                 <div className="bg-slate-50 p-6 rounded-3xl">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Points Earned</p>
+                  <p className="text-[10px] font-black text-slate-400 mb-2 uppercase">Score</p>
                   <p className="text-4xl font-black text-slate-800">{testResult.result.score}/{testResult.result.total}</p>
                 </div>
                 <div className="bg-slate-50 p-6 rounded-3xl">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Final Grade</p>
+                  <p className="text-[10px] font-black text-slate-400 mb-2 uppercase">Result</p>
                   <p className="text-4xl font-black text-indigo-600">{testResult.result.percentage.toFixed(0)}%</p>
                 </div>
               </div>
-
-              <div className={`inline-block px-12 py-3 rounded-full text-sm font-black uppercase tracking-widest shadow-sm mb-12 ${
-                testResult.result.status === 'Pass' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-              }`}>
-                {testResult.result.status}
-              </div>
-
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-black transition shadow-xl"
+                className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-black transition"
               >
                 Return Home
               </button>
