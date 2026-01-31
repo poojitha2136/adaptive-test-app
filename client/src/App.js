@@ -26,8 +26,8 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [testResult, setTestResult] = useState(null);
 
-  // Backend API Base URL
-  const API_URL = 'http://127.0.0.1:5000/api';
+  // Updated Backend API Base URL for Render
+  const API_URL = 'https://adaptive-test-backend.onrender.com/api';
 
   // --- API Interaction Handlers ---
 
@@ -47,7 +47,7 @@ const App = () => {
         throw new Error("Failed to generate test ID");
       }
     } catch (err) {
-      setError("Backend unreachable. Please ensure your Flask server is running at " + API_URL);
+      setError("Backend unreachable. Please ensure your Render service is live.");
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ const App = () => {
       setTestResult(data);
       setView('results');
     } catch (err) {
-      setError("Submission failed. Ensure your backend is still running.");
+      setError("Submission failed. Check your internet connection.");
     } finally {
       setLoading(false);
     }
@@ -105,7 +105,7 @@ const App = () => {
       const data = await res.json();
       setSubmissions(data);
     } catch (err) {
-      setError("Could not connect to the server. Is the Flask app running?");
+      setError("Could not connect to the server.");
     }
   };
 
