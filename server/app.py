@@ -4,13 +4,16 @@ import uuid
 import os
 
 app = Flask(__name__)
-CORS(app)
 
-# Storage (Resets on server restart)
+# Permissive CORS to ensure the frontend can always connect
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# In-memory storage (Resets if the Render server restarts)
 tests_db = {}
 submissions_db = []
 
 def get_fallback_questions(skills, count):
+    """Pool of 10 questions to ensure 'count' always works up to 10."""
     pool = [
         {"id": "q1", "skill": skills, "question": f"Which is a primary best practice when working with {skills}?", "options": ["Efficient Resource Management", "Ignoring Documentation", "Hardcoding Values", "Manual Testing Only"], "correct_answer": "Efficient Resource Management"},
         {"id": "q2", "skill": skills, "question": f"In a professional environment, how is {skills} typically version controlled?", "options": ["Using Git", "Emailing zip files", "Saving on Desktop", "No version control"], "correct_answer": "Using Git"},
@@ -25,35 +28,65 @@ def get_fallback_questions(skills, count):
     ]
     return pool[:min(len(pool), int(count))]
 
+@app.route('/api/health', methods=['GET'])
+def health():
+    return jsonify({"status": "active", "storage_count": len(tests_db)})
+
 @app.route('/api/create-test', methods=['POST'])
 def create_test():
-    data = request.json
-    test_id = str(uuid.uuid4())[:8]
-    skills = data.get('skills', 'General Programming')
-    num_q = data.get('numQuestions', 5)
-    questions = get_fallback_questions(skills, num_q)
-    tests_db[test_id] = {
-        "id": test_id, "skills": skills, "difficulty": data.get('difficulty', 'Medium'),
-        "questions": questions, "timeLimit": int(data.get('timeLimit', 10))
-    }
-    return jsonify({"testId": test_id})
+    try:
+        data = request.json
+        # Generate a clean, lowercase ID
+        test_id = str(uuid.uuid4())[:8].lower()
+        skills = data.get('skills', 'General Programming')
+        num_q = int(data.get('numQuestions', 5))
+        
+        questions = get_fallback_questions(skills, num_q)
+        
+        tests_db[test_id] = {
+            "id": test_id,
+            "skills": skills,
+            "difficulty": data.get('difficulty', 'Medium'),
+            "questions": questions,
+            "timeLimit": int(data.get('timeLimit', 10))
+        }
+        return jsonify({"testId": test_id, "status": "created"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/api/test/<test_id>', methods=['GET'])
 def get_test(test_id):
-    test = tests_db.get(test_id)
-    if not test: return jsonify({"error": "Not found"}), 404
+    # Normalize input to lowercase to match our dictionary keys
+    search_id = test_id.strip().lower()
+    test = tests_db.get(search_id)
+    
+    if not test:
+        return jsonify({"error": "Test code not found or expired. Please create a new test."}), 404
+    
     return jsonify(test)
 
 @app.route('/api/submit-test', methods=['POST'])
 def submit_test():
     data = request.json
-    test = tests_db.get(data.get('testId'))
-    if not test: return jsonify({"error": "Invalid session"}), 404
-    score = sum(1 for q in test['questions'] if data.get('answers', {}).get(q['id']) == q['correct_answer'])
+    test_id = data.get('testId', '').lower()
+    test = tests_db.get(test_id)
+    
+    if not test: 
+        return jsonify({"error": "Session expired"}), 404
+        
+    score = 0
+    user_answers = data.get('answers', {})
+    for q in test['questions']:
+        if user_answers.get(q['id']) == q['correct_answer']:
+            score += 1
+            
     total = len(test['questions'])
     res = {
-        "candidateName": data.get('candidateName', 'Guest'), "score": score, "total": total,
-        "percentage": int((score/total)*100), "status": "Pass" if (score/total) >= 0.6 else "Fail"
+        "candidateName": data.get('candidateName', 'Guest'),
+        "score": score,
+        "total": total,
+        "percentage": int((score/total)*100) if total > 0 else 0,
+        "status": "Pass" if (score/total) >= 0.6 else "Fail"
     }
     submissions_db.append(res)
     return jsonify({"result": res})
@@ -63,5 +96,6 @@ def get_submissions():
     return jsonify(submissions_db)
 
 if __name__ == '__main__':
+    # Listen on all interfaces for Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
