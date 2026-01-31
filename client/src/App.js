@@ -29,7 +29,7 @@ const App = () => {
   // CRITICAL: Updated Backend URL
   const API_URL = "https://adaptive-test-app-6.onrender.com";
 
-  // --- API Interaction Handlers ---
+  
 
   const handleCreateTest = async () => {
     setLoading(true);
