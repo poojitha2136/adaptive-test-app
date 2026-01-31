@@ -27,7 +27,7 @@ const App = () => {
   const [testResult, setTestResult] = useState(null);
 
   // CRITICAL: Updated Backend URL
-  const API_URL = "https://adaptive-test-app-6.onrender.com";
+  const API_URL = "https://adaptive-test-app-6.onrender.com/api";
 
   
 
