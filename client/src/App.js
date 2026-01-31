@@ -47,6 +47,7 @@ const App = () => {
     setView('login');
     setFormData({ name: '', email: '', password: '' });
     setCurrentTest(null);
+    setGeneratedTestId('');
   };
 
   const handleCreateTest = async () => {
@@ -66,24 +67,32 @@ const App = () => {
   const handleStartTest = async () => {
     if (!generatedTestId) return setError("Enter a Test Code.");
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`${API_URL}/test/${generatedTestId.trim().toLowerCase()}`);
       if (!res.ok) throw new Error("Test not found. Codes expire if the server restarts.");
       
       const data = await res.json();
       
-      if (data && data.questions) {
-        setCurrentTest(data); // SETTING THE QUESTIONS HERE
+      if (data && data.questions && data.questions.length > 0) {
+        // Critical: Update all state before changing view
+        setCurrentTest(data);
         setCurrentQuestionIndex(0);
         setAnswers({});
         setTimeLeft(data.timeLimit * 60);
-        setView('test'); // SWITCHING VIEW
+        setView('test'); 
+      } else {
+        throw new Error("Test data is empty or invalid.");
       }
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
+    } catch (err) { 
+      setError(err.message); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleSubmitTest = async () => {
+    if (!currentTest) return;
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/submit-test`, {
@@ -108,10 +117,13 @@ const App = () => {
 
   // --- Effects ---
   useEffect(() => {
+    let timer;
     if (view === 'test' && timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-      return () => clearInterval(timer);
-    } else if (view === 'test' && timeLeft === 0) handleSubmitTest();
+      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    } else if (view === 'test' && timeLeft === 0) {
+      handleSubmitTest();
+    }
+    return () => clearInterval(timer);
   }, [view, timeLeft]);
 
   useEffect(() => {
@@ -213,31 +225,40 @@ const App = () => {
         )}
 
         {/* --- ACTIVE TEST VIEW --- */}
-        {view === 'test' && currentTest && currentTest.questions && (
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="flex justify-between items-center bg-indigo-600 text-white p-6 rounded-2xl shadow-lg">
-              <span className="text-2xl font-mono font-black">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
-              <button onClick={handleSubmitTest} className="bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold">Submit</button>
+        {view === 'test' && (
+          !currentTest || !currentTest.questions ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <RefreshCw className="animate-spin text-indigo-600 mb-4" size={48} />
+              <p className="font-bold text-slate-500">Loading Assessment...</p>
             </div>
-            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
-              <div className="mb-8 flex justify-between">
-                <span className="font-black text-slate-400">Question {currentQuestionIndex + 1} / {currentTest.questions.length}</span>
+          ) : (
+            <div className="max-w-3xl mx-auto space-y-6">
+              <div className="flex justify-between items-center bg-indigo-600 text-white p-6 rounded-2xl shadow-lg">
+                <span className="text-2xl font-mono font-black">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                <button onClick={handleSubmitTest} className="bg-white text-indigo-600 px-6 py-2 rounded-xl font-bold">Submit</button>
               </div>
-              <h2 className="text-2xl font-bold mb-10">{currentTest.questions[currentQuestionIndex].question}</h2>
-              <div className="space-y-3">
-                {currentTest.questions[currentQuestionIndex].options.map((opt, i) => (
-                  <label key={i} className={`flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all ${answers[currentTest.questions[currentQuestionIndex].id] === opt ? 'border-indigo-600 bg-indigo-50' : 'border-slate-50'}`}>
-                    <input type="radio" className="hidden" checked={answers[currentTest.questions[currentQuestionIndex].id] === opt} onChange={() => setAnswers({...answers, [currentTest.questions[currentQuestionIndex].id]: opt})} />
-                    <span className="font-bold text-slate-700">{opt}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex justify-between mt-12">
-                <button disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(prev => prev - 1)} className="font-bold text-slate-400 disabled:opacity-0">Back</button>
-                <button disabled={currentQuestionIndex === currentTest.questions.length - 1} onClick={() => setCurrentQuestionIndex(prev => prev + 1)} className="bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl font-bold">Next</button>
+              <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                <div className="mb-8 flex justify-between">
+                  <span className="font-black text-slate-400 uppercase tracking-widest text-xs">
+                    Question {currentQuestionIndex + 1} / {currentTest.questions.length}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold mb-10">{currentTest.questions[currentQuestionIndex]?.question}</h2>
+                <div className="space-y-3">
+                  {currentTest.questions[currentQuestionIndex]?.options.map((opt, i) => (
+                    <label key={i} className={`flex items-center gap-4 p-5 border-2 rounded-2xl cursor-pointer transition-all ${answers[currentTest.questions[currentQuestionIndex].id] === opt ? 'border-indigo-600 bg-indigo-50' : 'border-slate-50'}`}>
+                      <input type="radio" className="hidden" checked={answers[currentTest.questions[currentQuestionIndex].id] === opt} onChange={() => setAnswers({...answers, [currentTest.questions[currentQuestionIndex].id]: opt})} />
+                      <span className="font-bold text-slate-700">{opt}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-12">
+                  <button disabled={currentQuestionIndex === 0} onClick={() => setCurrentQuestionIndex(prev => prev - 1)} className="font-bold text-slate-400 disabled:opacity-0">Back</button>
+                  <button disabled={currentQuestionIndex === currentTest.questions.length - 1} onClick={() => setCurrentQuestionIndex(prev => prev + 1)} className="bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl font-bold">Next</button>
+                </div>
               </div>
             </div>
-          </div>
+          )
         )}
 
         {/* --- RESULTS VIEW --- */}
