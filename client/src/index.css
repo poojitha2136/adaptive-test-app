@@ -4,9 +4,9 @@
 
 /* Custom Global Theme */
 :root {
-  --foreground-rgb: 241, 245, 249;      /* softer light text */
-  --background-start-rgb: 2, 6, 23;     /* deeper dark */
-  --background-end-rgb: 15, 23, 42;     /* gradient end */
+  --foreground-rgb: 237, 233, 254;      /* soft lavender text */
+  --background-start-rgb: 24, 24, 56;   /* deep indigo */
+  --background-end-rgb: 55, 48, 163;    /* royal purple */
 }
 
 body {
@@ -26,7 +26,7 @@ body {
 
 /* Improved transitions */
 button, input, select {
-  transition: 
+  transition:
     background-color 0.2s ease,
     color 0.2s ease,
     transform 0.15s ease;
@@ -36,7 +36,7 @@ button:hover {
   transform: translateY(-1px);
 }
 
-/* Minimal modern scrollbar */
+/* Modern purple scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -46,10 +46,10 @@ button:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+  background: linear-gradient(180deg, #a78bfa, #6366f1);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #7dd3fc, #0284c7);
+  background: linear-gradient(180deg, #c4b5fd, #4f46e5);
 }
