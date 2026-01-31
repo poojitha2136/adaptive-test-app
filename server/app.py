@@ -1,34 +1,32 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import uuid
-import os # Required to get the Port from Render
+import os
 
 app = Flask(__name__)
 
-# This allows your specific Render frontend to talk to this backend
+# Enable CORS for production
 CORS(app)
 
-# In-memory storage
+# In-memory storage (Resets when Render server sleeps/restarts)
 tests_db = {}
 submissions_db = []
 
 def get_fallback_questions(skills, count):
+    """Returns questions from an expanded pool to allow for variable test lengths."""
     pool = [
-        {
-            "id": "q1",
-            "skill": skills,
-            "question": f"Which of the following is a primary best practice when working with {skills}?",
-            "options": ["Efficient Resource Management", "Ignoring Documentation", "Hardcoding Values", "Manual Testing Only"],
-            "correct_answer": "Efficient Resource Management"
-        },
-        {
-            "id": "q2",
-            "skill": skills,
-            "question": f"In a professional environment, how is {skills} typically version controlled?",
-            "options": ["Using Git", "Emailing zip files", "Saving on Desktop", "No version control needed"],
-            "correct_answer": "Using Git"
-        }
+        {"id": "q1", "skill": skills, "question": f"Which is a primary best practice when working with {skills}?", "options": ["Efficient Resource Management", "Ignoring Documentation", "Hardcoding Values", "Manual Testing Only"], "correct_answer": "Efficient Resource Management"},
+        {"id": "q2", "skill": skills, "question": f"In a professional environment, how is {skills} typically version controlled?", "options": ["Using Git", "Emailing zip files", "Saving on Desktop", "No version control"], "correct_answer": "Using Git"},
+        {"id": "q3", "skill": skills, "question": f"Which tool is most commonly associated with testing {skills} code?", "options": ["Unit Testing Frameworks", "Notepad", "Calculator", "Social Media"], "correct_answer": "Unit Testing Frameworks"},
+        {"id": "q4", "skill": skills, "question": f"What is a main advantage of using {skills} in modern development?", "options": ["Scalability", "Slower performance", "Harder to maintain", "Limited support"], "correct_answer": "Scalability"},
+        {"id": "q5", "skill": skills, "question": f"What is a common error to avoid when implementing {skills}?", "options": ["Memory leaks", "Proper indentation", "Commenting code", "Meaningful variables"], "correct_answer": "Memory leaks"},
+        {"id": "q6", "skill": skills, "question": f"How should sensitive configuration data in {skills} be managed?", "options": ["Environment variables", "Hardcoded in source", "Public comments", "Plain text files"], "correct_answer": "Environment variables"},
+        {"id": "q7", "skill": skills, "question": f"Which principle helps in maintaining clean code in {skills}?", "options": ["DRY (Don't Repeat Yourself)", "WET (Write Everything Twice)", "Copy-Paste everything", "Hardcoding logic"], "correct_answer": "DRY (Don't Repeat Yourself)"},
+        {"id": "q8", "skill": skills, "question": f"What is the first step in debugging a {skills} application?", "options": ["Checking error logs", "Reinstalling OS", "Deleting the project", "Ignoring the error"], "correct_answer": "Checking error logs"},
+        {"id": "q9", "skill": skills, "question": f"In {skills}, what does 'Refactoring' mean?", "options": ["Improving code structure", "Adding new features", "Deleting all code", "Changing the UI only"], "correct_answer": "Improving code structure"},
+        {"id": "q10", "skill": skills, "question": f"Which of these is essential for {skills} team collaboration?", "options": ["Code Reviews", "Working in silos", "Never sharing code", "Manual deployment"], "correct_answer": "Code Reviews"}
     ]
+    # Slices the list based on the user's input
     return pool[:min(len(pool), int(count))]
 
 @app.route('/api/create-test', methods=['POST'])
@@ -37,6 +35,7 @@ def create_test():
     test_id = str(uuid.uuid4())[:8]
     skills = data.get('skills', 'General Programming')
     num_q = data.get('numQuestions', 5)
+    
     questions = get_fallback_questions(skills, num_q)
     
     tests_db[test_id] = {
@@ -86,6 +85,5 @@ def get_submissions():
     return jsonify(submissions_db)
 
 if __name__ == '__main__':
-    # RENDER FIX: Use the port Render gives you, and listen on 0.0.0.0
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
