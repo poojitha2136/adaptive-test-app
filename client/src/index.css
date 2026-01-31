@@ -2,40 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Global Resets */
+/* Custom Global Theme */
 :root {
-  --foreground-rgb: 226, 232, 240;     /* light text */
-  --background-start-rgb: 15, 23, 42;  /* dark blue-gray background */
+  --foreground-rgb: 241, 245, 249;      /* softer light text */
+  --background-start-rgb: 2, 6, 23;     /* deeper dark */
+  --background-end-rgb: 15, 23, 42;     /* gradient end */
 }
 
 body {
   margin: 0;
   color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--background-start-rgb)) 0%,
+    rgb(var(--background-end-rgb)) 100%
+  );
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Smooth transitions for interactive elements */
+/* Improved transitions */
 button, input, select {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: 
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
 }
 
-/* Custom scrollbar for a cleaner look */
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* Minimal modern scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;   /* dark track */
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #38bdf8;   /* sky blue thumb */
-  border-radius: 10px;
+  background: linear-gradient(180deg, #38bdf8, #0ea5e9);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0ea5e9;   /* darker blue on hover */
+  background: linear-gradient(180deg, #7dd3fc, #0284c7);
 }
