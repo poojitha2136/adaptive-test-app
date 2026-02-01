@@ -4,11 +4,6 @@ import uuid
 import os
 
 app = Flask(__name__)
-<<<<<<< HEAD
-
-CORS(app)
-=======
->>>>>>> 1b8af0f001aaee8c27c4cd9464e4adeae6932c0c
 
 # Permissive CORS to ensure the frontend can always connect
 CORS(app, resources={r"/api/*": {"origins": "*"}})
