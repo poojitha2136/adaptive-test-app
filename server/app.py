@@ -3,7 +3,7 @@ from flask_cors import CORS
 import uuid
 
 app = Flask(__name__)
-# Enable CORS so the React app can communicate with this server
+
 CORS(app)
 
 # In-memory storage for tests and submissions (resets when server restarts)

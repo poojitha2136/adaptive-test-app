@@ -422,6 +422,7 @@ const App = () => {
         )}
 
         {/* View: Results */}
+        {/*added div tags*/}
         {view === 'results' && testResult && (
           <div className="max-w-lg mx-auto py-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-2xl text-center">
