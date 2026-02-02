@@ -1,15 +1,45 @@
 {
-  "questions": [
+  "testcases": [
     {
-      "type": "mcq",
-      "correct_answer": "A",
-      "candidate_answer": "A"
+      "name": "Positive Case – All Correct",
+      "questions": [
+        { "type": "mcq", "correct_answer": "A", "candidate_answer": "A" },
+        {
+          "type": "short",
+          "keywords": ["mutable", "list"],
+          "candidate_answer": "Python list is mutable"
+        }
+      ],
+      "expected_score": 2
     },
     {
-      "type": "short",
-      "keywords": ["mutable", "list"],
-      "candidate_answer": "Python list is mutable"
+      "name": "Negative Case – Wrong MCQ",
+      "questions": [
+        { "type": "mcq", "correct_answer": "A", "candidate_answer": "B" }
+      ],
+      "expected_score": 0
+    },
+    {
+      "name": "Edge Case – Case Insensitive Keywords",
+      "questions": [
+        {
+          "type": "short",
+          "keywords": ["mutable", "list"],
+          "candidate_answer": "LIST is MUTABLE"
+        }
+      ],
+      "expected_score": 1
+    },
+    {
+      "name": "Edge Case – Empty Answer",
+      "questions": [
+        {
+          "type": "short",
+          "keywords": ["mutable"],
+          "candidate_answer": ""
+        }
+      ],
+      "expected_score": 0
     }
-  ],
-  "expected_score": 2
+  ]
 }
