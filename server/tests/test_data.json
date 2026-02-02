@@ -1,0 +1,15 @@
+{
+  "questions": [
+    {
+      "type": "mcq",
+      "correct_answer": "A",
+      "candidate_answer": "A"
+    },
+    {
+      "type": "short",
+      "keywords": ["mutable", "list"],
+      "candidate_answer": "Python list is mutable"
+    }
+  ],
+  "expected_score": 2
+}
