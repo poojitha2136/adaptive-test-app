@@ -1,4 +1,5 @@
 import json
+import os
 
 def evaluate(questions):
     score = 0
@@ -6,12 +7,16 @@ def evaluate(questions):
         if q["type"] == "mcq" and q["candidate_answer"] == q["correct_answer"]:
             score += 1
         elif q["type"] == "short":
-            if all(k in q["candidate_answer"].lower() for k in q["keywords"]):
+            if all(k.lower() in q["candidate_answer"].lower() for k in q["keywords"]):
                 score += 1
     return score
 
 def main():
-    with open("tests/test_data.json") as f:
+    # Get absolute path to test_data.json (works in Docker + VS Code)
+    base_dir = os.path.dirname(__file__)
+    data_path = os.path.join(base_dir, "test_data.json")
+
+    with open(data_path, "r") as f:
         data = json.load(f)
 
     score = evaluate(data["questions"])
